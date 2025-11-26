@@ -1,5 +1,6 @@
 ARG BASE_IMAGE=eclipse-temurin:21-jre
-FROM ${BASE_IMAGE}
+ARG WITHOUT_DATA_VOLUME=0
+FROM ${BASE_IMAGE} AS base
 
 # hook into docker BuildKit --platform support
 # see https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
@@ -57,8 +58,6 @@ RUN curl -fsSL ${MC_HELPER_BASE_URL}/mc-image-helper-${MC_HELPER_VERSION}.tgz \
   | tar -C /usr/share -zxf - \
     && ln -s /usr/share/mc-image-helper-${MC_HELPER_VERSION}/ /usr/share/mc-image-helper \
     && ln -s /usr/share/mc-image-helper/bin/mc-image-helper /usr/bin
-
-VOLUME ["/data"]
 WORKDIR /data
 
 STOPSIGNAL SIGTERM
@@ -94,3 +93,10 @@ buildtime=${BUILDTIME}
 version=${VERSION}
 revision=${REVISION}
 EOF
+
+FROM base AS image-0
+VOLUME ["/data"]
+
+FROM base AS image-1
+
+FROM image-${WITHOUT_DATA_VOLUME} AS final
