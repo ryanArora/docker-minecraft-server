@@ -107,7 +107,6 @@ jobs:
 #            mcHelperVersion: 1.46.0
     env:
       IMAGE_TO_TEST: "${{ github.repository_owner }}/minecraft-server:test-${{ matrix.variant }}-${{ github.run_id }}"
-      HAS_IMAGE_REPO_ACCESS: ${{ secrets.DOCKER_USER != '' && secrets.DOCKER_PASSWORD != '' }}
       MAIN_VARIANT: java21
     runs-on: ubuntu-22.04
     steps:
@@ -121,10 +120,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5.9.0
         with:
-          # NOTE for forks: if your Docker Hub organization doesn't match your Github repo's,
-          # then the use of ${{ github.repository_owner }} will need to be replaced.
           images: |
-            ${{ github.repository_owner }}/minecraft-server
             ghcr.io/${{ github.repository_owner }}/minecraft-server
           tags: |
             # Apply the variant as a moving tag for most recent commit per variant
@@ -178,16 +174,9 @@ jobs:
         run: |
           tests/test.sh
 
-      - name: Login to DockerHub
-        uses: docker/login-action@v3.6.0
-        if: env.HAS_IMAGE_REPO_ACCESS
-        with:
-          username: ${{ secrets.DOCKER_USER }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
       - name: Login to GHCR
         uses: docker/login-action@v3.6.0
-        if: env.HAS_IMAGE_REPO_ACCESS
+        if: github.actor == github.repository_owner
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -204,7 +193,6 @@ jobs:
             || github.ref_name == github.event.repository.default_branch
             || startsWith(github.ref_name, 'test/')
             || ( github.event_name == 'pull_request' 
-                 && env.HAS_IMAGE_REPO_ACCESS 
                  && contains(github.event.pull_request.labels.*.name, 'ci/push-image') 
                )
             }}
